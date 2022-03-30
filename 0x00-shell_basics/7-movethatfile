@@ -1,0 +1,5 @@
+<<<<<<< HEAD
+=======
+#!/bin/bash
+mv /tmp/betty /tmp/holberton/
+>>>>>>> 173d21b2183b59d8e8e9b0505b58cdaa6b2f3b48
