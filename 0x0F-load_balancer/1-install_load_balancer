@@ -39,11 +39,11 @@ defaults
   timeout server 15s
   timeout http-request 10s
 
-frontend th3gr00t-tech-frontend
+frontend jedidalx-tech-frontend
     bind *:80
-    default_backend th3gr00t-tech-backend
+    default_backend jedidalx-tech-backend
 
-backend th3gr00t-tech-backend
+backend jedidalx-tech-backend
     balance roundrobin
     server 453-web-01 3.238.28.227:80 check
     server 453-web-02 100.25.139.237:80 check
