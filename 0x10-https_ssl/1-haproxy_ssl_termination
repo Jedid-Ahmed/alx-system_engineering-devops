@@ -36,9 +36,8 @@ defaults
 frontend jedidalx-tech-frontend
 	bind *:80
 	bind *:443 ssl crt /etc/haproxy/certs/jedidalx.tech.pem
-	reqadd X-Forwarded-Proto:\ https
-	acl letsencrypt-acl path_beg /.well-known/acme-challenge/
-	use_backend letsencrypt-backend if letsencrypt-acl
+	http-request redirect scheme https unless { ssl_fc }
+	http-request set-header X-Forwarded-Proto https
 	default_backend jedidalx-tech-backend
 
 backend jedidalx-tech-backend
