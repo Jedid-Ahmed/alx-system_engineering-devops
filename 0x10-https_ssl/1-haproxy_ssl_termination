@@ -19,5 +19,5 @@ frontend jedidalx-tech-frontend
 
 backend jedidalx-tech-backend
 	balance roundrobin
-	server 443-web-01 3.238.28.227:80 check
-	server 443-web-02 100.25.139.237:80 check
+	server 40862-web-01 3.238.28.227:80 check
+	server 40862-web-02 100.25.139.237:80 check
