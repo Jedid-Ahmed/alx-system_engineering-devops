@@ -1,36 +1,47 @@
 #!/usr/bin/python3
-"""
-Query Reddit API recursively for all hot articles of a given subreddit
-"""
-import requests
+"""Module for task 3"""
 
 
-def recurse(subreddit, hot_list=[], after="tmp"):
-    """
-        return all hot articles for a given subreddit
-        return None if invalid subreddit given
-    """
-    # get user agent
-    # https://stackoverflow.com/questions/10606133/ -->
-    # sending-user-agent-using-requests-library-in-python
-    headers = requests.utils.default_headers()
-    headers.update({'User-Agent': 'My User Agent 1.0'})
+def count_words(subreddit, word_list, word_count={}, after=None):
+    """Queries the Reddit API and returns the count of words in
+    word_list in the titles of all the hot posts
+    of the subreddit"""
+    import requests
 
-    # update url each recursive call with param "after"
-    url = "https://www.reddit.com/r/{}/hot.json".format(subreddit)
-    if after != "tmp":
-        url = url + "?after={}".format(after)
-    r = requests.get(url, headers=headers, allow_redirects=False)
+    sub_info = requests.get("https://www.reddit.com/r/{}/hot.json"
+                            .format(subreddit),
+                            params={"after": after},
+                            headers={"User-Agent": "My-User-Agent"},
+                            allow_redirects=False)
+    if sub_info.status_code != 200:
+        return None
 
-    # append top titles to hot_list
-    results = r.json().get('data', {}).get('children', [])
-    if not results:
-        return hot_list
-    for e in results:
-        hot_list.append(e.get('data').get('title'))
+    info = sub_info.json()
 
-    # get next param "after" else nothing else to recurse
-    after = r.json().get('data').get('after')
-    if not after:
-        return hot_list
-    return (recurse(subreddit, hot_list, after))
+    hot_l = [child.get("data").get("title")
+             for child in info
+             .get("data")
+             .get("children")]
+    if not hot_l:
+        return None
+
+    word_list = list(dict.fromkeys(word_list))
+
+    if word_count == {}:
+        word_count = {word: 0 for word in word_list}
+
+    for title in hot_l:
+        split_words = title.split(' ')
+        for word in word_list:
+            for s_word in split_words:
+                if s_word.lower() == word.lower():
+                    word_count[word] += 1
+
+    if not info.get("data").get("after"):
+        sorted_counts = sorted(word_count.items(), key=lambda kv: kv[0])
+        sorted_counts = sorted(word_count.items(),
+                               key=lambda kv: kv[1], reverse=True)
+        [print('{}: {}'.format(k, v)) for k, v in sorted_counts if v != 0]
+    else:
+        return count_words(subreddit, word_list, word_count,
+                           info.get("data").get("after"))
