@@ -1,97 +1,46 @@
 #!/usr/bin/python3
-''' Query reddit API recursively to obtain hot post titles'''
+"""Module with top_ten function"""
+import re
 import requests
 import sys
 
 
-def count_words(subreddit, word_list, word_dict={}, after="", first_call=True):
-    ''' sdf '''
-    url = 'https://api.reddit.com/r/{}/hot/?after={}'\
-          .format((subreddit), after)
-    headers = {
-                'User-Agent': 'My User Agent 1.0'
-              }
-    r = requests.get(url, headers=headers, allow_redirects=False)
-    # check if invalid subreddit name
-    if r.status_code != 200:
-        print("\n")
-        return
-    # convert and parse json data for the list of posts
-    content = r.json()
-    data = content['data']
-    dist = data['dist']
-    children = data['children']
-    after = data['after']
-    # call get_children that will find the title
-    word_dict = get_children(children, word_list,
-                             word_dict, 0, dist, first_call)
-    first_call = False
-    # if the current page it last page
-    if after is None:
-        print_final(word_dict, 0, word_list, len(word_list), 0)
-        return
+def count_words(subreddit, word_list, after="", to_print={}):
+    """Queries the Reddit API and returns a list containing the titles of all
+    hot articles for a given subreddit."""
 
-    # construct new url with the after value to get next page
-    url = 'https://api.reddit.com/r/{}/hot/?after={}'\
-          .format((subreddit), after)
-    word_dict = count_words(subreddit, word_list,
-                            word_dict, after, first_call)
-
-    print_final(word_dict, 0, word_list, len(word_list), 0)
-    return
-
-
-def get_children(children, word_list, word_dict,
-                 count, dist, first_call):
-    ''' get the title of each hot post'''
-
-    # retrieve title if there is content
-    if count < dist:
-        title = children[count]['data']['title']
-        title = title.lower()
-        title_list = title.split()
-        '''
-        if first_call is True:
-            for word in word_list:
-                word_dict[word] = 0
-        '''
-        word_dict = check_word(title_list, word_list, word_dict, 0, first_call)
-        count += 1
-        first_call = False
-        word_dict = get_children(children, word_list,
-                                 word_dict, count, dist, first_call)
-        return (word_dict)
-    else:
-        return word_dict
-
-
-def check_word(title_list, word_list,
-               word_dict, count, first_call):
-    ''' Check if one of the keyword is on a post title'''
-    if first_call is True:
+    if after == "":
         for word in word_list:
-            word_dict[word] = 0
-    if count < len(word_list):
-        key = word_list[count]
-        if key.lower() in title_list:
-            word_dict[key] += 1
-        count += 1
-        first_call = False
-        word_dict = check_word(title_list,
-                               word_list, word_dict, count, first_call)
-    return (word_dict)
+            to_print[word] = 0
 
+    url = "https://www.reddit.com/r/{}/hot.json{}".format(subreddit, after)
+    json_obj = requests.get(url, headers={'User-Agent': 'My User Agent 1.0'})
 
-def print_final(word_dict, count, word_list, length, x):
-    if count < length:
-        key = word_list[0]
-        if key in word_dict.keys():
-            value = word_dict[key]
-            if value != 0:
-                x = 1
-                print("{}: {}".format(key, value))
-        word_list.remove(key)
-        count += 1
-        print_final(word_dict, count, word_list, length, x)
-        if x == 0:
-            print('\n')
+    if json_obj.status_code != 404:
+
+        dict_obj = json_obj.json()
+        list_obj = dict_obj.get('data').get('children')
+
+        for each in list_obj:
+            title = each.get('data').get('title')
+            tit_list = title.split()
+            for word in word_list:
+                c = re.compile(r"^{}$".format(word), re.I)
+                for each_tit_w in tit_list:
+                    res = c.findall(each_tit_w)
+                    to_print[word] += len(res)
+
+        next_fullname = dict_obj.get('data').get('after')
+        after = "?after={}".format(next_fullname)
+
+        if next_fullname is not None:
+            count_words(subreddit, word_list, after, to_print)
+        else:
+            sorted_l = sorted(to_print.items(), key=lambda x: x[1])
+            sorted_l.reverse()
+
+            for x in sorted_l:
+                if x[1] != 0:
+                    print("{}: {}".format(x[0], x[1]))
+
+    return None
